@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>วิธีเริ่มต้นใช้งาน — Thai Spell Checker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 2.5rem 1.5rem;
+      line-height: 1.7;
+    }
+
+    /* ── Layout ── */
+    .container { max-width: 860px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .hero {
+      text-align: center;
+      padding: 3rem 2rem;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid #334155;
+      border-radius: 24px;
+      margin-bottom: 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(56,189,248,0.08) 0%, transparent 70%);
+      top: -100px; left: -100px;
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(244,114,182,0.08) 0%, transparent 70%);
+      bottom: -80px; right: -80px;
+      pointer-events: none;
+    }
+    .hero-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+    .hero h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      color: #64748b;
+      margin-top: 0.6rem;
+      font-size: 1rem;
+    }
+
+    /* ── Steps ── */
+    .steps { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .step {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .step:hover { border-color: #475569; }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.2rem 1.5rem;
+      border-bottom: 1px solid #334155;
+      background: rgba(255,255,255,0.02);
+    }
+    .step-num {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .step-num.blue   { background: rgba(56,189,248,0.15);  color: #38bdf8; }
+    .step-num.purple { background: rgba(129,140,248,0.15); color: #818cf8; }
+    .step-num.pink   { background: rgba(244,114,182,0.15); color: #f472b6; }
+    .step-num.green  { background: rgba(74,222,128,0.15);  color: #4ade80; }
+    .step-num.yellow { background: rgba(251,191,36,0.15);  color: #fbbf24; }
+
+    .step-title { font-size: 1.05rem; font-weight: 700; }
+    .step-subtitle { font-size: 0.82rem; color: #64748b; }
+
+    .step-body { padding: 1.4rem 1.5rem; }
+
+    /* ── Code Block ── */
+    .code-block {
+      background: #0f172a;
+      border: 1px solid #1e3a5f;
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #7dd3fc;
+      margin: 0.8rem 0;
+      position: relative;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .code-block .comment { color: #475569; }
+    .code-block .cmd     { color: #4ade80; }
+    .code-block .path    { color: #fbbf24; }
+    .code-block .flag    { color: #f472b6; }
+
+    /* Copy button */
+    .code-wrap { position: relative; }
+    .copy-btn {
+      position: absolute;
+      top: 0.6rem; right: 0.6rem;
+      background: #334155;
+      border: none;
+      color: #94a3b8;
+      font-size: 0.72rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Sarabun', sans-serif;
+      transition: background 0.15s;
+    }
+    .copy-btn:hover { background: #475569; color: #e2e8f0; }
+    .copy-btn.copied { background: #166534; color: #4ade80; }
+
+    /* ── Info / Warning Box ── */
+    .info-box, .warn-box, .tip-box {
+      display: flex;
+      gap: 0.8rem;
+      padding: 0.9rem 1.1rem;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      margin: 0.8rem 0;
+    }
+    .info-box {
+      background: rgba(56,189,248,0.08);
+      border: 1px solid rgba(56,189,248,0.2);
+      color: #bae6fd;
+    }
+    .warn-box {
+      background: rgba(251,191,36,0.08);
+      border: 1px solid rgba(251,191,36,0.2);
+      color: #fef08a;
+    }
+    .tip-box {
+      background: rgba(74,222,128,0.08);
+      border: 1px solid rgba(74,222,128,0.2);
+      color: #bbf7d0;
+    }
+    .box-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── File Tree ── */
+    .file-tree {
+      background: #0f172a;
+      border: 1px solid #1e3a5f;
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.83rem;
+      line-height: 2;
+      margin: 0.8rem 0;
+    }
+    .file-tree .folder { color: #fbbf24; }
+    .file-tree .file   { color: #94a3b8; }
+    .file-tree .target { color: #4ade80; font-weight: 600; }
+    .file-tree .arrow  { color: #38bdf8; }
+
+    /* ── Settings Table ── */
+    .settings-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+      margin: 0.8rem 0;
+    }
+    .settings-table th {
+      background: #0f172a;
+      color: #64748b;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 0.7rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #334155;
+    }
+    .settings-table td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid #1e293b;
+      color: #cbd5e1;
+    }
+    .settings-table tr:last-child td { border-bottom: none; }
+    .settings-table .var  { font-family: 'JetBrains Mono', monospace; color: #f472b6; font-size: 0.82rem; }
+    .settings-table .val  { font-family: 'JetBrains Mono', monospace; color: #fbbf24; font-size: 0.82rem; }
+
+    /* ── Preview Screenshot ── */
+    .preview-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .preview-mockup {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .mock-bar {
+      background: #0f172a;
+      padding: 0.6rem 1rem;
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+    }
+    .mock-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .mock-dot.red    { background: #ef4444; }
+    .mock-dot.yellow { background: #eab308; }
+    .mock-dot.green  { background: #22c55e; }
+    .mock-bar-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #475569;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .mock-content { padding: 1.2rem; }
+    .mock-cards {
+      display: flex;
+      gap: 0.6rem;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .mock-card {
+      flex: 1;
+      max-width: 100px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 0.6rem;
+      text-align: center;
+    }
+    .mock-card .mn { font-size: 1.4rem; font-weight: 800; }
+    .mock-card .ml { font-size: 0.6rem; color: #475569; margin-top: 2px; }
+    .mock-card.c1 .mn { color: #38bdf8; }
+    .mock-card.c2 .mn { color: #f87171; }
+    .mock-card.c3 .mn { color: #fbbf24; }
+    .mock-card.c4 .mn { color: #4ade80; }
+    .mock-table-row {
+      background: #0f172a;
+      border-radius: 6px;
+      padding: 0.5rem 0.7rem;
+      display: flex;
+      gap: 0.8rem;
+      align-items: center;
+      margin: 0.3rem 0;
+      font-size: 0.72rem;
+    }
+    .mock-badge-red   { background: rgba(239,68,68,0.2);  color: #f87171; padding: 1px 6px; border-radius: 999px; font-size: 0.68rem; }
+    .mock-badge-green { background: rgba(74,222,128,0.15); color: #4ade80; padding: 1px 6px; border-radius: 999px; font-size: 0.68rem; }
+
+    /* ── Checklist ── */
+    .checklist { list-style: none; margin: 0.6rem 0; }
+    .checklist li {
+      display: flex;
+      gap: 0.7rem;
+      align-items: flex-start;
+      padding: 0.35rem 0;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+    .check-icon { color: #4ade80; flex-shrink: 0; margin-top: 2px; }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      color: #334155;
+      font-size: 0.78rem;
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #1e293b;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 1.5rem; }
+      .mock-cards { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-icon">🔍</div>
+    <h1>Thai Spell Checker</h1>
+    <p>คู่มือเริ่มต้นใช้งาน — ตรวจคำผิดภาษาไทยจากรูปภาพและวิดีโอ</p>
+  </div>
+
+  <div class="steps">
+
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num blue">1</div>
+        <div>
+          <div class="step-title">ติดตั้ง Python และ Libraries</div>
+          <div class="step-subtitle">ต้องการ Python 3.9 ขึ้นไป</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="info-box">
+          <span class="box-icon">ℹ️</span>
+          <span>ตรวจสอบ Python ก่อนด้วยคำสั่ง <code style="background:#1e293b;padding:1px 6px;border-radius:4px;font-family:monospace">python --version</code> ต้องได้ 3.9 หรือสูงกว่า</span>
+        </div>
+
+        <p style="color:#94a3b8;font-size:0.88rem;margin-bottom:0.5rem;">เปิด Terminal / Command Prompt แล้วรันคำสั่งนี้:</p>
+        <div class="code-wrap">
+          <div class="code-block" id="cmd1"><span class="comment"># ติดตั้งทุก library ในครั้งเดียว</span>
+<span class="cmd">pip install</span> opencv-python easyocr pythainlp pandas</div>
+          <button class="copy-btn" onclick="copyCode('cmd1', this)">คัดลอก</button>
+        </div>
+
+        <div class="warn-box" style="margin-top:0.8rem;">
+          <span class="box-icon">⚠️</span>
+          <div>
+            <strong>การดาวน์โหลด Model ครั้งแรก</strong><br/>
+            EasyOCR จะดาวน์โหลด model ภาษาไทย (~400 MB) อัตโนมัติเมื่อรันครั้งแรก
+            ต้องมีอินเทอร์เน็ตและรอสักครู่
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num purple">2</div>
+        <div>
+          <div class="step-title">จัดโครงสร้างโฟลเดอร์</div>
+          <div class="step-subtitle">วางไฟล์ให้ถูกที่ก่อน Run</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="file-tree">
+<span class="folder">📁 thai_spell_checker/</span>
+├── <span class="file">thai_spell_checker.py</span>   <span class="comment"># โปรแกรมหลัก</span>
+├── <span class="file">requirements.txt</span>
+└── <span class="folder">📁 input_files/</span>              <span class="arrow">← วางไฟล์ของคุณที่นี่!</span>
+    ├── <span class="target">photo1.jpg</span>
+    ├── <span class="target">banner.png</span>
+    └── <span class="target">video_clip.mp4</span></div>
+
+        <div class="tip-box">
+          <span class="box-icon">✅</span>
+          <div>
+            <strong>ไฟล์ที่รองรับ</strong><br/>
+            รูปภาพ: <code style="background:#0f172a;padding:1px 5px;border-radius:4px;font-family:monospace">.jpg .jpeg .png .bmp .webp .tiff</code><br/>
+            วิดีโอ: <code style="background:#0f172a;padding:1px 5px;border-radius:4px;font-family:monospace">.mp4 .mov .avi .mkv .wmv</code>
+          </div>
+        </div>
+
+        <p style="color:#94a3b8;font-size:0.87rem;margin-top:0.8rem;">
+          โฟลเดอร์ <code style="background:#1e293b;padding:1px 6px;border-radius:4px;font-family:monospace">input_files/</code> จะถูกสร้างอัตโนมัติเมื่อ Run ครั้งแรก
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num pink">3</div>
+        <div>
+          <div class="step-title">ปรับการตั้งค่า (ถ้าต้องการ)</div>
+          <div class="step-subtitle">แก้ไขที่ส่วน main() ในไฟล์ thai_spell_checker.py</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <table class="settings-table">
+          <thead>
+            <tr>
+              <th>ตัวแปร</th>
+              <th>ค่าเริ่มต้น</th>
+              <th>คำอธิบาย</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="var">INPUT_FOLDER</td>
+              <td class="val">"./input_files"</td>
+              <td>โฟลเดอร์ที่วางไฟล์ทั้งหมด</td>
+            </tr>
+            <tr>
+              <td class="var">OUTPUT_HTML</td>
+              <td class="val">"./report.html"</td>
+              <td>ชื่อและที่อยู่ของไฟล์รายงาน</td>
+            </tr>
+            <tr>
+              <td class="var">SAMPLE_EVERY</td>
+              <td class="val">1</td>
+              <td>สุ่มตรวจวิดีโอทุก N วินาที (ยิ่งมากยิ่งเร็ว)</td>
+            </tr>
+            <tr>
+              <td class="var">USE_GPU</td>
+              <td class="val">False</td>
+              <td>เปลี่ยนเป็น True ถ้ามี NVIDIA GPU</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="code-wrap">
+          <div class="code-block" id="cmd2"><span class="comment"># ตัวอย่าง: เปลี่ยน path และสุ่มวิดีโอทุก 3 วินาที</span>
+INPUT_FOLDER  = <span class="path">"C:/Users/YourName/Desktop/my_files"</span>
+OUTPUT_HTML   = <span class="path">"C:/Users/YourName/Desktop/report.html"</span>
+SAMPLE_EVERY  = <span class="flag">3</span>
+USE_GPU       = <span class="flag">False</span></div>
+          <button class="copy-btn" onclick="copyCode('cmd2', this)">คัดลอก</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num green">4</div>
+        <div>
+          <div class="step-title">รันโปรแกรม</div>
+          <div class="step-subtitle">เปิด Terminal ใน folder ที่มีไฟล์ .py</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="code-wrap">
+          <div class="code-block" id="cmd3"><span class="comment"># cd เข้าโฟลเดอร์ก่อน</span>
+<span class="cmd">cd</span> <span class="path">C:\Users\gstor\OneDrive\Documents\project\thai_spell_checker</span>
+
+<span class="comment"># แล้ว Run</span>
+<span class="cmd">python</span> thai_spell_checker.py</div>
+          <button class="copy-btn" onclick="copyCode('cmd3', this)">คัดลอก</button>
+        </div>
+
+        <p style="color:#94a3b8;font-size:0.87rem;margin: 0.6rem 0 0.3rem;">สิ่งที่จะเห็นใน Terminal:</p>
+        <div class="code-block" style="color:#94a3b8;">═══════════════════════════════════════════════════════
+  Thai Spell Checker — OCR + PyThaiNLP
+═══════════════════════════════════════════════════════
+  Input  : C:\...\input_files
+  Output : C:\...\report.html
+  Video  : สุ่มทุก 1 วินาที
+═══════════════════════════════════════════════════════
+
+<span style="color:#4ade80;">กำลังโหลด EasyOCR (Thai + English)...</span>
+<span style="color:#4ade80;">โหลด Dictionary สำเร็จ (75,000+ คำ)</span>
+
+<span style="color:#38bdf8;">[1/3] กำลังประมวลผล: photo1.jpg</span>
+  → ข้อความ: ยินดีต้อนรับสู่งานสัมนา...
+  → คำผิดที่พบ: 1 คำ
+<span style="color:#38bdf8;">[2/3] กำลังประมวลผล: banner.png</span>
+  → ไม่พบข้อความในภาพ
+<span style="color:#38bdf8;">[3/3] กำลังประมวลผล: video_clip.mp4</span>
+  → FPS: 30.0, ทั้งหมด: 1800 เฟรม, สุ่มตรวจ: 60 จุด
+
+<span style="color:#f472b6;">✅ สร้างรายงาน HTML สำเร็จ: C:\...\report.html</span>
+ใช้เวลาทั้งหมด: 42.3 วินาที</div>
+
+        <div class="tip-box" style="margin-top:0.8rem;">
+          <span class="box-icon">🚀</span>
+          <span>รายงาน <strong>report.html</strong> จะเปิดใน Browser อัตโนมัติเมื่อเสร็จ!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Preview -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num yellow">5</div>
+        <div>
+          <div class="step-title">ผลลัพธ์ที่ได้ — HTML Dashboard</div>
+          <div class="step-subtitle">ตัวอย่างหน้า report.html</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="preview-mockup">
+          <div class="mock-bar">
+            <div class="mock-dot red"></div>
+            <div class="mock-dot yellow"></div>
+            <div class="mock-dot green"></div>
+            <div class="mock-bar-title">report.html — Thai Spell Checker Dashboard</div>
+          </div>
+          <div class="mock-content">
+            <p style="text-align:center;font-size:0.8rem;color:#38bdf8;font-weight:700;margin-bottom:0.8rem;">🔍 Thai Spell Checker Dashboard</p>
+            <div class="mock-cards">
+              <div class="mock-card c1"><div class="mn">12</div><div class="ml">จุดทั้งหมด</div></div>
+              <div class="mock-card c2"><div class="mn">3</div><div class="ml">พบข้อผิดพลาด</div></div>
+              <div class="mock-card c3"><div class="mn">5</div><div class="ml">คำที่น่าสงสัย</div></div>
+              <div class="mock-card c4"><div class="mn">9</div><div class="ml">ผ่านการตรวจ</div></div>
+            </div>
+            <div class="mock-table-row">
+              <span style="color:#a78bfa;font-size:0.68rem;background:rgba(167,139,250,0.15);padding:1px 6px;border-radius:4px;">VIDEO</span>
+              <span style="color:#93c5fd;font-size:0.72rem;">clip.mp4</span>
+              <span style="color:#475569;">0:00:05</span>
+              <span style="color:#cbd5e1;">ยินดีต้อนรับ<span style="color:#ef4444;font-weight:800;text-decoration:underline wavy #ef4444;">สัมนา</span>ครั้งที่ 3</span>
+              <span class="mock-badge-red">สัมนา</span>
+              <span style="color:#fbbf24;font-size:0.68rem;background:rgba(251,191,36,0.12);padding:1px 6px;border-radius:999px;">สัมมนา</span>
+            </div>
+            <div class="mock-table-row">
+              <span style="color:#38bdf8;font-size:0.68rem;background:rgba(56,189,248,0.15);padding:1px 6px;border-radius:4px;">IMAGE</span>
+              <span style="color:#93c5fd;font-size:0.72rem;">banner.jpg</span>
+              <span style="color:#475569;">-</span>
+              <span style="color:#cbd5e1;">ส่วนลด 50% วันนี้เท่านั้น</span>
+              <span class="mock-badge-green">ไม่พบคำผิด</span>
+              <span style="color:#475569;">-</span>
+            </div>
+            <div class="mock-table-row">
+              <span style="color:#38bdf8;font-size:0.68rem;background:rgba(56,189,248,0.15);padding:1px 6px;border-radius:4px;">IMAGE</span>
+              <span style="color:#93c5fd;font-size:0.72rem;">sign.png</span>
+              <span style="color:#475569;">-</span>
+              <span style="color:#cbd5e1;">ห้าม<span style="color:#ef4444;font-weight:800;text-decoration:underline wavy #ef4444;">จอดรถยน</span>ทุกชนิด</span>
+              <span class="mock-badge-red">จอดรถยน</span>
+              <span style="color:#fbbf24;font-size:0.68rem;background:rgba(251,191,36,0.12);padding:1px 6px;border-radius:999px;">จอดรถยนต์</span>
+            </div>
+          </div>
+        </div>
+
+        <ul class="checklist" style="margin-top:1rem;">
+          <li><span class="check-icon">✓</span> Summary Cards — แสดงสรุปจำนวนจุดตรวจ / พบผิด / ผ่าน</li>
+          <li><span class="check-icon">✓</span> คำผิดถูกไฮไลท์<span style="color:#ef4444;font-weight:700;"> สีแดง + ขีดเส้นใต้ลูกคลื่น</span></li>
+          <li><span class="check-icon">✓</span> แสดง Timestamp ของวิดีโอที่พบคำผิด</li>
+          <li><span class="check-icon">✓</span> แสดงคำแนะนำจาก PyThaiNLP (Dictionary ราชบัณฑิตยสถาน)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num" style="background:rgba(248,113,113,0.15);color:#f87171;">!</div>
+        <div>
+          <div class="step-title">แก้ปัญหาที่พบบ่อย</div>
+          <div class="step-subtitle">Troubleshooting</div>
+        </div>
+      </div>
+      <div class="step-body">
+
+        <div style="display:flex;flex-direction:column;gap:0.7rem;">
+
+          <div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1rem;">
+            <p style="color:#f87171;font-size:0.85rem;font-weight:700;margin-bottom:0.4rem;">❌ ModuleNotFoundError: No module named 'easyocr'</p>
+            <p style="color:#94a3b8;font-size:0.84rem;">รัน <code style="background:#1e293b;padding:1px 5px;border-radius:4px;font-family:monospace">pip install easyocr</code> อีกครั้ง หรือตรวจสอบว่า pip เป็นของ Python ที่ถูกเวอร์ชัน</p>
+          </div>
+
+          <div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1rem;">
+            <p style="color:#f87171;font-size:0.85rem;font-weight:700;margin-bottom:0.4rem;">❌ ไม่พบข้อความในภาพ (ทั้งที่มีตัวอักษร)</p>
+            <p style="color:#94a3b8;font-size:0.84rem;">ตรวจสอบว่าภาพคมชัด ไม่เบลอ และข้อความมีขนาดใหญ่พอ (แนะนำ &gt;20px) ภาพที่มีพื้นหลังซับซ้อนอาจอ่านได้ยาก</p>
+          </div>
+
+          <div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1rem;">
+            <p style="color:#f87171;font-size:0.85rem;font-weight:700;margin-bottom:0.4rem;">❌ โปรแกรมช้ามากกับวิดีโอยาว</p>
+            <p style="color:#94a3b8;font-size:0.84rem;">เพิ่มค่า <code style="background:#1e293b;padding:1px 5px;border-radius:4px;font-family:monospace">SAMPLE_EVERY</code> เป็น 3–5 วินาที หรือเปิด <code style="background:#1e293b;padding:1px 5px;border-radius:4px;font-family:monospace">USE_GPU = True</code> ถ้ามี GPU</p>
+          </div>
+
+          <div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1rem;">
+            <p style="color:#f87171;font-size:0.85rem;font-weight:700;margin-bottom:0.4rem;">❌ คำปกติถูกระบุว่าผิดมากเกินไป</p>
+            <p style="color:#94a3b8;font-size:0.84rem;">PyThaiNLP ใช้ Dictionary ราชบัณฑิตฯ ซึ่งอาจไม่รวมคำแสลง ชื่อแบรนด์ หรือคำทับศัพท์ เป็นเรื่องปกติ</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /steps -->
+
+  <div class="footer">
+    Thai Spell Checker · EasyOCR + PyThaiNLP (ราชบัณฑิตยสถาน) · Python 3.9+
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  function copyCode(id, btn) {
+    const el = document.getElementById(id);
+    // ดึงแค่ text ออกมา ไม่เอา HTML tag
+    const text = el.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓ คัดลอกแล้ว';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'คัดลอก';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+</script>
+</body>
+</html>

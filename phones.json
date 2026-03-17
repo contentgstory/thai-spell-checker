@@ -1,0 +1,19 @@
+{
+  "description": "กฎการตรวจสอบเบอร์โทรศัพท์ตามสินค้า — บริษัท โฮปฟูล จำกัด",
+  "known_phones": [
+    "063-479-1496",
+    "061-826-3693"
+  ],
+  "rules": [
+    {
+      "phone": "061-826-3693",
+      "product_ids": ["betaoil", "betaxplus"],
+      "description": "เบอร์สำหรับ Beta Oil (เบต้าออยล์) และ Beta X Plus (เบต้าเอ็กซ์พลัส)"
+    },
+    {
+      "phone": "063-479-1496",
+      "product_ids": ["betalife", "betaherb", "betalivproplus", "labfarm"],
+      "description": "เบอร์สำหรับ Beta Life, Beta Herb, Beta Liv Pro Plus, Lab Farm"
+    }
+  ]
+}
