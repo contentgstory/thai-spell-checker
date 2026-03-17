@@ -1,15 +1,5 @@
-# Thai Spell Checker — Dependencies
-# ติดตั้งทั้งหมดด้วย: pip install -r requirements.txt
-
-# ใช้ PyTorch CPU-only เพื่อลดขนาด (~500MB แทน ~2GB แบบ CUDA)
---extra-index-url https://download.pytorch.org/whl/cpu
-
 streamlit>=1.35.0
-opencv-python-headless>=4.8.0
 easyocr>=1.7.1
 pythainlp>=5.0.0
-numpy>=1.24.0,<2.0.0
 Pillow>=9.0.0
-torch==2.1.0+cpu
-torchvision==0.16.0+cpu
 scipy>=1.10.0
