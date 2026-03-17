@@ -16,7 +16,8 @@ from dataclasses import dataclass, field
 
 import cv2
 import numpy as np
-import easyocr
+import pytesseract
+from PIL import Image
 import streamlit as st
 from pythainlp.tokenize import word_tokenize
 from pythainlp.spell import correct
@@ -484,8 +485,9 @@ def apply_phrase_corrections(text: str, phrases: list, threshold: float = 0.7) -
 
 @st.cache_resource(show_spinner=False)
 def load_ocr(use_gpu: bool = False):
-    """โหลด EasyOCR reader (cached)"""
-    return easyocr.Reader(["th", "en"], gpu=use_gpu)
+    """ตรวจสอบ pytesseract พร้อมใช้งาน (use_gpu ไม่มีผล — tesseract ใช้ CPU เสมอ)"""
+    pytesseract.get_tesseract_version()
+    return None
 
 
 @st.cache_resource(show_spinner=False)
@@ -580,24 +582,33 @@ def ocr_image(
     if preprocess:
         img_array = preprocess_image(img_array, upscale_factor, do_denoise, do_binarize)
 
-    # 2. OCR
-    raw = reader.readtext(img_array, detail=1, paragraph=False)
+    # 2. OCR ด้วย pytesseract
+    pil_img = Image.fromarray(cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB))
+    data = pytesseract.image_to_data(
+        pil_img, lang="tha+eng",
+        output_type=pytesseract.Output.DICT,
+        config="--psm 3 --oem 1",
+    )
 
     texts   = []
     details = []
-    for (_, text, conf) in raw:
-        text = text.strip()
-        if conf < min_confidence or len(text) < 2:
+    for text, conf in zip(data["text"], data["conf"]):
+        text     = text.strip()
+        conf_int = int(conf)
+        if conf_int < 0 or not text:
+            continue
+        conf_norm = conf_int / 100.0
+        if conf_norm < min_confidence or len(text) < 2:
             continue
 
-        # 3. Char-level corrections (log ทุกครั้งที่เปลี่ยน)
+        # 3. Char-level corrections
         after_char = apply_ocr_corrections(text, corrections)
 
         # 4. Phrase-level fuzzy corrections
         after_phrase = apply_phrase_corrections(after_char, phrases, phrase_threshold)
 
         texts.append(after_phrase)
-        details.append((after_phrase, conf))
+        details.append((after_phrase, conf_norm))
 
     full_text = " ".join(texts)
     return full_text, details
@@ -1366,7 +1377,7 @@ with st.sidebar:
         "สุ่มตรวจทุกกี่วินาที",
         min_value=1, max_value=10, value=2, step=1,
     )
-    use_gpu = st.checkbox("ใช้ GPU", value=False)
+    use_gpu = False  # pytesseract ใช้ CPU เสมอ
 
     st.divider()
 
@@ -1725,8 +1736,8 @@ if run and uploaded_files:
     _phrase_threshold    = float(_phrase_data.get("threshold", 0.7))
     effective_ignore     = persistent_whitelist | {b["thai"] for b in brands}
 
-    with st.spinner("กำลังโหลด OCR model…"):
-        reader = load_ocr(use_gpu=use_gpu)
+    with st.spinner("กำลังตรวจสอบ Tesseract OCR…"):
+        reader = load_ocr()
 
     all_results  = []
     t_start      = time.time()

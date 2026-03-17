@@ -1,12 +1,7 @@
-# ใช้ PyTorch CPU-only wheel โดยตรง เพื่อหลีกเลี่ยง CUDA version (~2.5GB)
-# ต้องระบุ URL ตรงเพราะ uv/pip จะติดตั้ง CUDA version ถ้าไม่ระบุ
-https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp311-cp311-linux_x86_64.whl
-https://download.pytorch.org/whl/cpu/torchvision-0.16.0%2Bcpu-cp311-cp311-linux_x86_64.whl
-
 streamlit>=1.35.0
-easyocr==1.7.1
+opencv-python-headless>=4.8.0
+pytesseract>=0.3.10
 pythainlp>=5.0.0
 Pillow>=9.0.0
 scipy>=1.10.0
-numpy>=1.24.0,<2.0.0
-opencv-python-headless==4.9.0.80
+numpy>=1.24.0
