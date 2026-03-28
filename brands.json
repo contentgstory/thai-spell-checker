@@ -18,7 +18,14 @@
         "รางวัลเหรียญเงิน หมวดนวัตกรรมเพื่อสุขภาพจากธรรมชาติ ณ กรุงเจนีวา สวิตเซอร์แลนด์",
         "รางวัลเหรียญทอง หมวดนวัตกรรมเพื่อสุขภาพ จากสหรัฐอเมริกา"
       ],
-      "research": "รับรองโดยสถาบันวิจัยวิทยาศาสตร์และเทคโนโลยีแห่งประเทศไทย (วว.) นวัตกรรมจากประเทศสวิตเซอร์แลนด์"
+      "research": "รับรองโดยสถาบันวิจัยวิทยาศาสตร์และเทคโนโลยีแห่งประเทศไทย (วว.) นวัตกรรมจากประเทศสวิตเซอร์แลนด์",
+      "promotion_requirements": {
+        "duration": "required",
+        "price": "required",
+        "benefits_gifts": "required",
+        "promotion_type": "required",
+        "bundle_exclusivity": "required"
+      }
     },
     {
       "id": "betalife",
@@ -36,7 +43,14 @@
       "awards": [
         "เหรียญทอง จากงาน The 50th International Exhibition of Inventions Geneva กรุงเจนีวา สวิตเซอร์แลนด์"
       ],
-      "research": "ผลงานวิจัย: สารออกฤทธิ์ทุติยภูมิจากเห็ดหลินจือแดงสำหรับบรรเทาอาการของโรคไต ร่วมพัฒนากับ วว."
+      "research": "ผลงานวิจัย: สารออกฤทธิ์ทุติยภูมิจากเห็ดหลินจือแดงสำหรับบรรเทาอาการของโรคไต ร่วมพัฒนากับ วว.",
+      "promotion_requirements": {
+        "duration": "required",
+        "price": "required",
+        "benefits_gifts": "required",
+        "promotion_type": "required",
+        "bundle_exclusivity": "required"
+      }
     },
     {
       "id": "betaherb",
@@ -52,7 +66,14 @@
       "prices_original": {"1": 1590, "4": 6360, "8": 12720, "15": 23850},
       "innovation": "สารสกัดจากมะระขี้นก 9 ชนิด ส่งเสริมการทำงานของอินซูลิน สารสกัดเจียวกู่หลาน ยีสต์เบต้ากลูแคน",
       "awards": [],
-      "research": "สารสกัดจากมะระขี้นก 9 ชนิด ผ่านกระบวนการสกัดมาตรฐาน"
+      "research": "สารสกัดจากมะระขี้นก 9 ชนิด ผ่านกระบวนการสกัดมาตรฐาน",
+      "promotion_requirements": {
+        "duration": "required",
+        "price": "required",
+        "benefits_gifts": "required",
+        "promotion_type": "required",
+        "bundle_exclusivity": "required"
+      }
     },
     {
       "id": "betaxplus",
@@ -68,7 +89,14 @@
       "prices_original": {"1": 1290, "4": 5160, "8": 10320, "15": 19350},
       "innovation": "นวัตกรรม M-Gard® ยีสต์เบต้ากลูแคน สายพันธุ์ 1,3/1,6 กลูแคน นำเข้าจากประเทศนอร์เวย์",
       "awards": [],
-      "research": "M-Gard® นำเข้าจากประเทศนอร์เวย์ มาตรฐานระดับสากล"
+      "research": "M-Gard® นำเข้าจากประเทศนอร์เวย์ มาตรฐานระดับสากล",
+      "promotion_requirements": {
+        "duration": "required",
+        "price": "required",
+        "benefits_gifts": "required",
+        "promotion_type": "required",
+        "bundle_exclusivity": "required"
+      }
     },
     {
       "id": "betalivproplus",
@@ -89,7 +117,14 @@
         "เหรียญทอง KIPA – Seoul International Invention Fair 2012",
         "เหรียญทอง + รางวัลพิเศษจากโรมาเนีย (รวม 7 รางวัล)"
       ],
-      "research": "ร่วมพัฒนากับ Toyo Hakko ประเทศญี่ปุ่น สารสกัด 9 ชนิด: โกจิเบอร์รี่, เบต้าแคโรทีน, ส้มขม, ลูกพลับ, ถั่วเขียว, Buckwheat, ALA และอื่นๆ"
+      "research": "ร่วมพัฒนากับ Toyo Hakko ประเทศญี่ปุ่น สารสกัด 9 ชนิด: โกจิเบอร์รี่, เบต้าแคโรทีน, ส้มขม, ลูกพลับ, ถั่วเขียว, Buckwheat, ALA และอื่นๆ",
+      "promotion_requirements": {
+        "duration": "required",
+        "price": "required",
+        "benefits_gifts": "required",
+        "promotion_type": "required",
+        "bundle_exclusivity": "required"
+      }
     },
     {
       "id": "labfarm",
@@ -107,7 +142,14 @@
       "awards": [
         "ทดสอบโดยมหาวิทยาลัยรังสิต ยืนยันประสิทธิภาพยับยั้งเซลล์มะเร็ง"
       ],
-      "research": "ทดสอบโดยกลุ่มวิจัยเภสัชวิทยาและพิษวิทยา มหาวิทยาลัยรังสิต ยืนยันประสิทธิภาพยับยั้งเซลล์มะเร็ง"
+      "research": "ทดสอบโดยกลุ่มวิจัยเภสัชวิทยาและพิษวิทยา มหาวิทยาลัยรังสิต ยืนยันประสิทธิภาพยับยั้งเซลล์มะเร็ง",
+      "promotion_requirements": {
+        "duration": "required",
+        "price": "required",
+        "benefits_gifts": "required",
+        "promotion_type": "required",
+        "bundle_exclusivity": "required"
+      }
     },
     {
       "id": "betacalproplus",
@@ -125,7 +167,14 @@
       "awards": [
         "รางวัลนวัตกรรมนานาชาติ Silicon Valley International Inventions Festival 2025"
       ],
-      "research": "Silicon Valley International Inventions Festival 2025"
+      "research": "Silicon Valley International Inventions Festival 2025",
+      "promotion_requirements": {
+        "duration": "required",
+        "price": "required",
+        "benefits_gifts": "required",
+        "promotion_type": "required",
+        "bundle_exclusivity": "required"
+      }
     }
   ]
 }

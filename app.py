@@ -778,6 +778,64 @@ def check_brand_issues(text: str, brands: list) -> list:
 
 
 # ─────────────────────────────────────────────
+# Promotion Requirements Check
+# ─────────────────────────────────────────────
+
+def check_promotion_requirements(text: str, brands: list) -> list:
+    """
+    ตรวจสอบข้อมูลโปรสงกรานต์ 5 รายการ:
+    1. duration - ระยะเวลาโปรโมชั่น
+    2. price - ราคา
+    3. benefits_gifts - สิทธิ/ของแถม
+    4. promotion_type - ประเภทโปรโมชั่น
+    5. bundle_exclusivity - เงื่อนไขสินค้าแถม
+    """
+    issues = []
+    text_lower = text.lower()
+    
+    # Keywords สำหรับแต่ละหมวดหมู่
+    duration_keywords = ["ระยะเวลา", "โปรโมชั่น", "โปร", "วันที่", "ส่วนลด", "ราคาพิเศษ", "เมื่อ", "ถึง", "วันที่"]
+    price_keywords = ["ราคา", "บาท", "฿", "ลด", "เหลือ", "ปกติ", "บาท/ซอง", "บาท/แคปซูล", "บาท/เม็ด"]
+    benefits_keywords = ["ของแถม", "แถม", "ฟรี", "เพิ่ม", "เพิ่มเติม", "ยิ่งซื้อ", "ซื้อมากขึ้น", "ได้รับ", "สิทธิ"]
+    promotion_type_keywords = ["สงกรานต์", "โปรโมชั่น", "โปร", "ปีใหม่", "เทศกาล", "ครบรอบ", "ลดราคา"]
+    exclusivity_keywords = ["ไม่ซ้ำ", "สินค้าต่างชนิด", "ต่างสินค้า", "ห้ามซ้ำ", "อื่นๆ", "แตกต่าง", "นอกจากสินค้าซื้อ"]
+    
+    # Mention brands ที่พบ
+    mentioned_brands = [b for b in brands if b["english"].lower() in text_lower or b["thai"] in text]
+    
+    if not mentioned_brands:
+        return []
+    
+    # ตรวจสอบแต่ละ requirement สำหรับแต่ละ brand
+    requirements = ["duration", "price", "benefits_gifts", "promotion_type", "bundle_exclusivity"]
+    keyword_map = {
+        "duration": duration_keywords,
+        "price": price_keywords,
+        "benefits_gifts": benefits_keywords,
+        "promotion_type": promotion_type_keywords,
+        "bundle_exclusivity": exclusivity_keywords,
+    }
+    
+    for brand in mentioned_brands:
+        for req in requirements:
+            keywords = keyword_map[req]
+            found = any(kw in text_lower for kw in keywords)
+            
+            if not found and brand.get("promotion_requirements", {}).get(req) == "required":
+                issues.append(BrandIssue(
+                    issue_type    = f"missing_promotion_{req}",
+                    brand_id      = brand["id"],
+                    brand_english = brand["english"],
+                    brand_thai    = brand["thai"],
+                    found         = "",
+                    expected      = f"ต้องระบุ {req.replace('_', ' ')}",
+                    context       = f"⚠️ ข้อมูลโปรสงกรานต์ {brand['thai']} ขาดหายไป",
+                ))
+    
+    return issues
+
+
+# ─────────────────────────────────────────────
 # Spell Check Helper
 # ─────────────────────────────────────────────
 
@@ -866,7 +924,11 @@ def process_ocr_for_spelling(
                     })
 
     full_text    = " ".join(all_texts)
-    brand_issues = check_brand_issues(full_text, brands) + check_phone_issues(full_text, brands)
+    brand_issues = (
+        check_brand_issues(full_text, brands) +
+        check_phone_issues(full_text, brands) +
+        check_promotion_requirements(full_text, brands)
+    )
     return full_text, wrong_words, brand_issues
 
 
@@ -1605,6 +1667,43 @@ with st.sidebar:
 
     st.divider()
 
+    # ── Promotion Requirements ──
+    st.markdown("### 📋 ข้อมูลโปรสงกรานต์")
+    with st.expander("จัดการข้อมูลโปรสงกรานต์", expanded=False):
+        brands_with_promo = [b for b in brands if b.get("promotion_requirements")]
+        
+        if brands_with_promo:
+            promo_brand = st.selectbox(
+                "เลือกแบรนด์เพื่อตรวจสอบข้อมูล",
+                options=brands_with_promo,
+                format_func=lambda b: f"{b['thai']} ({b['english']})",
+                key="promo_brand_select",
+            )
+            
+            if promo_brand:
+                st.markdown(f"**{promo_brand['thai']}** ({promo_brand['english']})")
+                
+                promo_reqs = promo_brand.get("promotion_requirements", {})
+                req_list = [
+                    ("duration", "ระยะเวลาโปรโมชั่น"),
+                    ("price", "ราคา"),
+                    ("benefits_gifts", "สิทธิ/ของแถม"),
+                    ("promotion_type", "ประเภทโปรโมชั่น"),
+                    ("bundle_exclusivity", "เงื่อนไขสินค้าแถม"),
+                ]
+                
+                st.markdown("**ข้อมูลที่จำเป็น:**")
+                for req_key, req_label in req_list:
+                    status = promo_reqs.get(req_key, "optional")
+                    badge = "🔴 บังคับ" if status == "required" else "🟢 ไม่บังคับ"
+                    st.markdown(f"  • {req_label}: {badge}")
+                
+                st.info("💡 ข้อมูลเหล่านี้จะถูกตรวจสอบจากข้อความในรูปภาพ/วิดีโอ")
+        else:
+            st.warning("ไม่มีแบรนด์ที่มีข้อมูลโปรสงกรานต์")
+
+    st.divider()
+
     # ── Phrase Templates ──
     st.markdown("### 💬 ประโยคต้นแบบ (Phrase Templates)")
     phrase_data       = load_phrases()
@@ -1847,16 +1946,21 @@ if all_results:
         for r in all_results
     )
     total_brand = sum(
-        len([bi for bi in r.brand_issues if bi.issue_type != "wrong_phone"])
+        len([bi for bi in r.brand_issues 
+             if bi.issue_type not in ("wrong_phone",) and not bi.issue_type.startswith("missing_promotion_")])
         for r in all_results
     )
     total_phone = sum(
         len([bi for bi in r.brand_issues if bi.issue_type == "wrong_phone"])
         for r in all_results
     )
+    total_promo = sum(
+        len([bi for bi in r.brand_issues if bi.issue_type.startswith("missing_promotion_")])
+        for r in all_results
+    )
 
     st.markdown("### 📊 สรุป")
-    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    m1, m2, m3, m4, m5, m6, m7 = st.columns(7)
 
     def metric_card(col, value, label, color="#e2e8f0"):
         col.markdown(
@@ -1872,7 +1976,8 @@ if all_results:
     metric_card(m3, total_unclear,    "OCR ไม่ชัด",  "#94a3b8")
     metric_card(m4, total_brand,      "ปัญหาแบรนด์", "#fbbf24")
     metric_card(m5, total_phone,      "เบอร์ผิด",    "#f87171")
-    metric_card(m6, f"{scan_elapsed:.1f}s", "เวลา")
+    metric_card(m6, total_promo,      "โปรสงกรานต์", "#ef4444")
+    metric_card(m7, f"{scan_elapsed:.1f}s", "เวลา")
 
     st.divider()
 
@@ -1888,7 +1993,13 @@ if all_results:
 
     if all_brand_issues:
         st.markdown("### 🏷️ ปัญหาที่พบเกี่ยวกับแบรนด์")
-        for bi in all_brand_issues:
+        
+        # แยกประเภท issues
+        promo_issues = [bi for bi in all_brand_issues if bi.issue_type.startswith("missing_promotion_")]
+        other_issues = [bi for bi in all_brand_issues if not bi.issue_type.startswith("missing_promotion_")]
+        
+        # แสดง non-promo issues ก่อน
+        for bi in other_issues:
             if bi.issue_type == "brand_thai_misspell":
                 st.markdown(
                     f'<div class="brand-alert">'
@@ -1916,6 +2027,22 @@ if all_results:
                     f'</div>',
                     unsafe_allow_html=True,
                 )
+        
+        # แสดง promo issues แยกจากกัน
+        if promo_issues:
+            st.markdown("---")
+            st.markdown("### 📌 ข้อมูลโปรสงกรานต์ที่ขาดหายไป")
+            for bi in promo_issues:
+                req_name = bi.issue_type.replace("missing_promotion_", "").replace("_", " ")
+                st.markdown(
+                    f'<div style="background:rgba(239,68,68,.1); border-left:4px solid #ef4444; '
+                    f'padding:12px; margin:8px 0; border-radius:4px;">'
+                    f'📋 <strong>{html.escape(bi.brand_thai)}</strong><br>'
+                    f'⚠️ ขาดหายไป: <strong>{req_name.title()}</strong>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+        
         st.divider()
 
     # ── Per-file Results ──
@@ -1927,13 +2054,17 @@ if all_results:
                               and w["word"] not in dismissed_words
                               and w["word"] not in persistent_whitelist])
         unclear_count = len([w for w in r.wrong_words if w["conf_type"] == "ocr_unclear"])
-        brand_count   = len([bi for bi in r.brand_issues if bi.issue_type != "wrong_phone"])
+        brand_count   = len([bi for bi in r.brand_issues 
+                            if bi.issue_type not in ("wrong_phone",) and not bi.issue_type.startswith("missing_promotion_")])
         phone_count   = len([bi for bi in r.brand_issues if bi.issue_type == "wrong_phone"])
+        promo_count   = len([bi for bi in r.brand_issues if bi.issue_type.startswith("missing_promotion_")])
 
         parts = [f"คำผิด: {spell_count}", f"OCR ไม่ชัด: {unclear_count}",
                  f"แบรนด์: {brand_count}"]
         if phone_count:
             parts.append(f"⚠️ เบอร์ผิด: {phone_count}")
+        if promo_count:
+            parts.append(f"📌 โปร: {promo_count}")
         label = f"{r.filename}  [{' | '.join(parts)}]"
 
         with st.expander(label, expanded=(r_idx == 0)):
@@ -1954,7 +2085,13 @@ if all_results:
             # Brand issues for this file
             if r.brand_issues:
                 st.markdown("**🏷️ ปัญหาแบรนด์ในไฟล์นี้**")
-                for bi in r.brand_issues:
+                
+                # แยก issues
+                promo_issues = [bi for bi in r.brand_issues if bi.issue_type.startswith("missing_promotion_")]
+                other_issues = [bi for bi in r.brand_issues if not bi.issue_type.startswith("missing_promotion_")]
+                
+                # แสดง non-promo issues
+                for bi in other_issues:
                     if bi.issue_type == "brand_thai_misspell":
                         st.markdown(
                             f'<div class="brand-alert">'
@@ -1979,6 +2116,21 @@ if all_results:
                             f'📞 <strong>{html.escape(bi.brand_thai)}</strong> '
                             f'ควรใช้เบอร์ "{html.escape(bi.expected)}" '
                             f'ไม่ใช่ "{html.escape(bi.found)}"'
+                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
+                
+                # แสดง promo issues
+                if promo_issues:
+                    st.markdown("---")
+                    st.markdown("**📌 ข้อมูลโปรสงกรานต์ที่ขาดหายไป**")
+                    for bi in promo_issues:
+                        req_name = bi.issue_type.replace("missing_promotion_", "").replace("_", " ")
+                        st.markdown(
+                            f'<div style="background:rgba(239,68,68,.1); border-left:4px solid #ef4444; '
+                            f'padding:12px; margin:8px 0; border-radius:4px;">'
+                            f'📋 <strong>{html.escape(bi.brand_thai)}</strong><br>'
+                            f'⚠️ ขาดหายไป: <strong>{req_name.title()}</strong>'
                             f'</div>',
                             unsafe_allow_html=True,
                         )

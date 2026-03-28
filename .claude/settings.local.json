@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(..venvScriptspip3.exe install:*)",
+      "Bash(\"C:/Users/gstor/OneDrive/Documents/project/แอปตรวจคำผิด thai_spell_checker/.venv/Scripts/pip3.exe\" install anthropic)",
+      "Bash(PYTHONUTF8=1 \"C:/Users/gstor/OneDrive/Documents/project/แอปตรวจคำผิด thai_spell_checker/.venv/Scripts/pip3.exe\" install anthropic)",
+      "Bash(PYTHONUTF8=1 \"C:/Users/gstor/OneDrive/Documents/project/แอปตรวจคำผิด thai_spell_checker/.venv/Scripts/python.exe\" -m streamlit run \"C:/Users/gstor/OneDrive/Documents/project/แอปตรวจคำผิด thai_spell_checker/app.py\")"
+    ]
+  }
+}
