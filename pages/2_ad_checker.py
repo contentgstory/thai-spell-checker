@@ -3,8 +3,9 @@
 ส่งรูปแอดไปให้ Claude Vision ตรวจ checklist 5 ข้อ
 """
 
-import base64, json, datetime, streamlit as st
+import base64, json, datetime, io, streamlit as st
 import anthropic
+from PIL import Image
 
 # ─────────────────────────────────────────────
 # CSS  (same dark theme as main app)
@@ -127,10 +128,55 @@ SYSTEM_PROMPT = """คุณเป็น AI ผู้เชี่ยวชาญ
 
 
 # ─────────────────────────────────────────────
+# Helper: resize image to fit API limit (< 4 MB base64)
+# ─────────────────────────────────────────────
+MAX_BASE64_BYTES = 4 * 1024 * 1024  # 4 MB
+
+
+def compress_image(image_bytes: bytes) -> tuple[bytes, str]:
+    """Return (compressed_bytes, media_type) with base64 size < 4 MB."""
+    # If already small enough, return as-is (assume JPEG)
+    if len(base64.b64encode(image_bytes)) < MAX_BASE64_BYTES:
+        # Detect format from header
+        if image_bytes[:4] == b"\x89PNG":
+            return image_bytes, "image/png"
+        return image_bytes, "image/jpeg"
+
+    img = Image.open(io.BytesIO(image_bytes))
+    if img.mode == "RGBA":
+        img = img.convert("RGB")
+
+    # Step 1: try lowering JPEG quality
+    for quality in (85, 70, 55, 40, 25):
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=quality)
+        data = buf.getvalue()
+        if len(base64.b64encode(data)) < MAX_BASE64_BYTES:
+            return data, "image/jpeg"
+
+    # Step 2: progressively resize 50% and compress
+    for _ in range(5):
+        w, h = img.size
+        img = img.resize((w // 2, h // 2), Image.LANCZOS)
+        for quality in (85, 55, 35):
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=quality)
+            data = buf.getvalue()
+            if len(base64.b64encode(data)) < MAX_BASE64_BYTES:
+                return data, "image/jpeg"
+
+    # Last resort: return smallest version
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=20)
+    return buf.getvalue(), "image/jpeg"
+
+
+# ─────────────────────────────────────────────
 # Helper: call Anthropic Claude Vision
 # ─────────────────────────────────────────────
 def call_vision_api(image_bytes: bytes, key: str) -> dict:
     """Send base64 image to Claude and return parsed JSON."""
+    image_bytes, media_type = compress_image(image_bytes)
     b64 = base64.b64encode(image_bytes).decode()
     client = anthropic.Anthropic(api_key=key)
     message = client.messages.create(
@@ -145,7 +191,7 @@ def call_vision_api(image_bytes: bytes, key: str) -> dict:
                         "type": "image",
                         "source": {
                             "type": "base64",
-                            "media_type": "image/jpeg",
+                            "media_type": media_type,
                             "data": b64,
                         },
                     },
