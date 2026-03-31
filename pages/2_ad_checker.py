@@ -103,7 +103,7 @@ RULES = [
     {"id": 2, "rule": "ราคา — ต้องมีตัวเลขราคาหรือส่วนลด"},
     {"id": 3, "rule": "สิทธิ์ที่ลูกค้าได้รับ / ของแถม — ต้องระบุชัดเจน"},
     {"id": 4, "rule": "ของแถมแสดงเป็นรูปกล่องสีดำ (mystery box) ไม่ใช่ภาพสินค้าจริง"},
-    {"id": 5, "rule": 'มีข้อความ "สินค้าที่แถม ต้องไม่เป็นรายการเดียวกับสินค้าที่ซื้อ"'},
+    {"id": 5, "rule": "มีข้อความระบุว่าของแถมไม่ซ้ำกับสินค้าที่ซื้อ"},
 ]
 
 SYSTEM_PROMPT = """คุณเป็น AI ผู้เชี่ยวชาญตรวจสอบชิ้นงานโฆษณาภาษาไทย
@@ -113,9 +113,7 @@ SYSTEM_PROMPT = """คุณเป็น AI ผู้เชี่ยวชาญ
 2. ราคา — ต้องมีตัวเลขราคาหรือส่วนลด
 3. สิทธิ์ที่ลูกค้าได้รับ / ของแถม — ต้องระบุชัดเจนว่าลูกค้าจะได้อะไร
 4. ของแถมแสดงเป็นรูปกล่องสีดำ (mystery box) — ภาพของแถมต้องไม่แสดงสินค้าจริง ต้องเป็นกล่องสีดำ/กล่องปริศนา
-5. มีข้อความ "สินค้าที่แถม ต้องไม่เป็นรายการเดียวกับสินค้าที่ซื้อ" — ต้องมีข้อความนี้ปรากฏอยู่ในภาพ ข้อความนี้อาจเป็นตัวอักษรขนาดเล็ก อยู่บริเวณกลางภาพ หรือใกล้กับส่วนของแถม/โปรโมชั่น ให้ตรวจสอบทุกส่วนของภาพอย่างละเอียด รวมถึงข้อความขนาดเล็ก
-
-หมายเหตุ: ข้อความที่มีความหมายเดียวกันก็ถือว่าผ่าน เช่น "สินค้าที่แถม ต้องไม่เป็นรายการเดียวกัน กับสินค้าที่ซื้อ" หรือ "สินค้าที่แถมต้องไม่เป็นรายการเดียวกับสินค้าที่ซื้อ" ถือว่าผ่านเหมือนกัน
+5. มีข้อความระบุว่าของแถมไม่ซ้ำกับสินค้าที่ซื้อ — ให้มองหาข้อความสีเหลืองหรือสีทองขนาดเล็กที่อยู่ใกล้คำว่า 'โปรโมชั่น' หรือ 'สินค้าที่แถม' ข้อความอาจเขียนว่า 'สินค้าที่แถม ต้องไม่เป็นรายการเดียวกัน กับสินค้าที่ซื้อ' หรือคำที่มีความหมายใกล้เคียง ถ้าพบข้อความใดก็ตามที่สื่อว่าของแถมต้องไม่ซ้ำกับสินค้าที่ซื้อ ให้ถือว่าผ่าน
 
 ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่นนอก JSON ห้ามใส่ markdown code block:
 {
@@ -175,7 +173,7 @@ def call_vision_api(image_bytes: bytes, key: str) -> dict:
     b64 = base64.b64encode(image_bytes).decode()
     client = anthropic.Anthropic(api_key=key)
     message = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-opus-4-20250514",
         max_tokens=2000,
         system=SYSTEM_PROMPT,
         messages=[
@@ -200,6 +198,67 @@ def call_vision_api(image_bytes: bytes, key: str) -> dict:
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
     return json.loads(raw)
+
+
+# ─────────────────────────────────────────────
+# Helper: crop top half & retry rule 5
+# ─────────────────────────────────────────────
+RULE5_PROMPT = """คุณเป็น AI ผู้เชี่ยวชาญตรวจสอบชิ้นงานโฆษณาภาษาไทย
+ดูภาพนี้แล้วตอบคำถามเดียว:
+มีข้อความที่สื่อว่า "ของแถมต้องไม่ซ้ำกับสินค้าที่ซื้อ" หรือไม่?
+ให้มองหาข้อความสีเหลืองหรือสีทองขนาดเล็กที่อยู่ใกล้คำว่า 'โปรโมชั่น' หรือ 'สินค้าที่แถม'
+ข้อความอาจเขียนว่า 'สินค้าที่แถม ต้องไม่เป็นรายการเดียวกัน กับสินค้าที่ซื้อ' หรือคำที่มีความหมายใกล้เคียง
+
+ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่นนอก JSON ห้ามใส่ markdown code block:
+{"found": true, "detail": "อธิบายสั้นๆ ว่าเจอข้อความอะไร ตรงไหน"}
+"""
+
+
+def crop_top_half(image_bytes: bytes) -> bytes:
+    """Crop the top 50% of an image and return as bytes."""
+    img = Image.open(io.BytesIO(image_bytes))
+    w, h = img.size
+    cropped = img.crop((0, 0, w, h // 2))
+    buf = io.BytesIO()
+    fmt = "PNG" if img.format == "PNG" else "JPEG"
+    cropped.save(buf, format=fmt, quality=95)
+    return buf.getvalue()
+
+
+def retry_rule5(image_bytes: bytes, key: str) -> dict | None:
+    """Send cropped top-half image to check rule 5 only. Returns parsed JSON or None."""
+    cropped = crop_top_half(image_bytes)
+    cropped, media_type = compress_image(cropped)
+    b64 = base64.b64encode(cropped).decode()
+    client = anthropic.Anthropic(api_key=key)
+    message = client.messages.create(
+        model="claude-opus-4-20250514",
+        max_tokens=500,
+        system=RULE5_PROMPT,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": b64,
+                        },
+                    },
+                    {"type": "text", "text": "มีข้อความระบุว่าของแถมไม่ซ้ำกับสินค้าที่ซื้อหรือไม่? ดูข้อความสีเหลือง/สีทองขนาดเล็กให้ละเอียด"},
+                ],
+            }
+        ],
+    )
+    raw = message.content[0].text
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
 
 
 # ─────────────────────────────────────────────
@@ -345,7 +404,18 @@ if run:
             text=f"กำลังตรวจ {uf.name} ({idx + 1}/{total})...",
         )
         try:
-            data = call_vision_api(uf.getvalue(), api_key)
+            raw_bytes = uf.getvalue()
+            data = call_vision_api(raw_bytes, api_key)
+            # Retry rule 5: if failed, crop top half and re-check
+            rule5 = next((r for r in data.get("results", []) if r.get("id") == 5), None)
+            if rule5 and not rule5.get("passed"):
+                r5 = retry_rule5(raw_bytes, api_key)
+                if r5 and r5.get("found"):
+                    rule5["passed"] = True
+                    rule5["detail"] = f"(ตรวจรอบ 2 จาก crop ครึ่งบน) {r5.get('detail', '')}"
+                    # Recalculate score
+                    passed_count = sum(1 for r in data["results"] if r.get("passed"))
+                    data["score"] = f"{passed_count}/5"
             all_results.append((uf.name, data, None))
         except Exception as e:
             all_results.append((uf.name, None, str(e)))
