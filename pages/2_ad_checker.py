@@ -136,22 +136,22 @@ MAX_BASE64_BYTES = 4 * 1024 * 1024  # 4 MB
 
 
 def compress_image(image_bytes: bytes) -> tuple[bytes, str]:
-    """Return (compressed_bytes, media_type) with base64 size < 4.5 MB."""
-    MAX_LONG_SIDE = 2000
-    TARGET_SIZE = 4.5 * 1024 * 1024  # 4.5 MB
+    """Return (compressed_bytes, media_type) with base64 size < 4.8 MB."""
+    MAX_LONG_SIDE = 2500
+    TARGET_SIZE = 4.8 * 1024 * 1024  # 4.8 MB
 
     img = Image.open(io.BytesIO(image_bytes))
     if img.mode == "RGBA":
         img = img.convert("RGB")
 
-    # Step 1: resize so the longest side <= 2000px (LANCZOS for sharp text)
+    # Step 1: resize so the longest side <= 2500px (LANCZOS for sharp text)
     w, h = img.size
     if max(w, h) > MAX_LONG_SIDE:
         scale = MAX_LONG_SIDE / max(w, h)
         img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
 
-    # Step 2: compress JPEG starting at quality 90, reduce by 5 until < 4.5 MB
-    quality = 90
+    # Step 2: compress JPEG starting at quality 95, reduce by 5 until < 4.8 MB
+    quality = 95
     while quality >= 20:
         buf = io.BytesIO()
         img.save(buf, format="JPEG", quality=quality)
@@ -190,7 +190,7 @@ def call_vision_api(image_bytes: bytes, key: str) -> dict:
                             "data": b64,
                         },
                     },
-                    {"type": "text", "text": "กรุณาตรวจสอบแอดโฆษณานี้ตามเกณฑ์ที่กำหนด"},
+                    {"type": "text", "text": "กรุณาตรวจสอบแอดโฆษณานี้ตามเกณฑ์ 5 ข้อ โดยเฉพาะข้อ 5 ให้ดูข้อความขนาดเล็กทั่วทั้งภาพให้ละเอียด ข้อความอาจเขียนว่า 'สินค้าที่แถม ต้องไม่เป็นรายการเดียวกัน กับสินค้าที่ซื้อ' หรือข้อความคล้ายกัน มักอยู่ใกล้บริเวณโปรโมชั่นหรือของแถม"},
                 ],
             }
         ],
