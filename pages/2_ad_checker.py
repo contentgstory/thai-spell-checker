@@ -113,7 +113,9 @@ SYSTEM_PROMPT = """คุณเป็น AI ผู้เชี่ยวชาญ
 2. ราคา — ต้องมีตัวเลขราคาหรือส่วนลด
 3. สิทธิ์ที่ลูกค้าได้รับ / ของแถม — ต้องระบุชัดเจนว่าลูกค้าจะได้อะไร
 4. ของแถมแสดงเป็นรูปกล่องสีดำ (mystery box) — ภาพของแถมต้องไม่แสดงสินค้าจริง ต้องเป็นกล่องสีดำ/กล่องปริศนา
-5. มีข้อความ "สินค้าที่แถม ต้องไม่เป็นรายการเดียวกับสินค้าที่ซื้อ" — ต้องมีข้อความนี้ปรากฏอยู่ในภาพ
+5. มีข้อความ "สินค้าที่แถม ต้องไม่เป็นรายการเดียวกับสินค้าที่ซื้อ" — ต้องมีข้อความนี้ปรากฏอยู่ในภาพ ข้อความนี้อาจเป็นตัวอักษรขนาดเล็ก อยู่บริเวณกลางภาพ หรือใกล้กับส่วนของแถม/โปรโมชั่น ให้ตรวจสอบทุกส่วนของภาพอย่างละเอียด รวมถึงข้อความขนาดเล็ก
+
+หมายเหตุ: ข้อความที่มีความหมายเดียวกันก็ถือว่าผ่าน เช่น "สินค้าที่แถม ต้องไม่เป็นรายการเดียวกัน กับสินค้าที่ซื้อ" หรือ "สินค้าที่แถมต้องไม่เป็นรายการเดียวกับสินค้าที่ซื้อ" ถือว่าผ่านเหมือนกัน
 
 ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่นนอก JSON ห้ามใส่ markdown code block:
 {
@@ -134,36 +136,29 @@ MAX_BASE64_BYTES = 4 * 1024 * 1024  # 4 MB
 
 
 def compress_image(image_bytes: bytes) -> tuple[bytes, str]:
-    """Return (compressed_bytes, media_type) with base64 size < 4 MB."""
-    # If already small enough, return as-is (assume JPEG)
-    if len(base64.b64encode(image_bytes)) < MAX_BASE64_BYTES:
-        # Detect format from header
-        if image_bytes[:4] == b"\x89PNG":
-            return image_bytes, "image/png"
-        return image_bytes, "image/jpeg"
+    """Return (compressed_bytes, media_type) with base64 size < 4.5 MB."""
+    MAX_LONG_SIDE = 2000
+    TARGET_SIZE = 4.5 * 1024 * 1024  # 4.5 MB
 
     img = Image.open(io.BytesIO(image_bytes))
     if img.mode == "RGBA":
         img = img.convert("RGB")
 
-    # Step 1: try lowering JPEG quality
-    for quality in (85, 70, 55, 40, 25):
+    # Step 1: resize so the longest side <= 2000px (LANCZOS for sharp text)
+    w, h = img.size
+    if max(w, h) > MAX_LONG_SIDE:
+        scale = MAX_LONG_SIDE / max(w, h)
+        img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
+    # Step 2: compress JPEG starting at quality 90, reduce by 5 until < 4.5 MB
+    quality = 90
+    while quality >= 20:
         buf = io.BytesIO()
         img.save(buf, format="JPEG", quality=quality)
         data = buf.getvalue()
-        if len(base64.b64encode(data)) < MAX_BASE64_BYTES:
+        if len(base64.b64encode(data)) < TARGET_SIZE:
             return data, "image/jpeg"
-
-    # Step 2: progressively resize 50% and compress
-    for _ in range(5):
-        w, h = img.size
-        img = img.resize((w // 2, h // 2), Image.LANCZOS)
-        for quality in (85, 55, 35):
-            buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=quality)
-            data = buf.getvalue()
-            if len(base64.b64encode(data)) < MAX_BASE64_BYTES:
-                return data, "image/jpeg"
+        quality -= 5
 
     # Last resort: return smallest version
     buf = io.BytesIO()
